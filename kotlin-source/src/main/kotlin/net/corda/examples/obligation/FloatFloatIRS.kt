@@ -4,6 +4,9 @@ import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import net.corda.examples.obligation.models.FixedLeg
+import net.corda.examples.obligation.models.FloatingLeg
+import net.corda.examples.obligation.models.IRSBasicInfo
 
 data class FloatFloatIRS(val basicInfo: IRSBasicInfo,
                          val floatingLeg1: FixedLeg,

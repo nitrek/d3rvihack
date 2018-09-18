@@ -1,6 +1,9 @@
-package net.corda.examples.obligation
+package net.corda.examples.obligation.models
 
+import net.corda.core.serialization.CordaSerializable
+import net.corda.examples.obligation.PaymentFrequency
 
+@CordaSerializable
 data class FixedLeg(val payerPartyReference : String,
                     val receiverPartyReference : String,
                     val quantiy: Notional,

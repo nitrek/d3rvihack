@@ -9,7 +9,7 @@ import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
 import net.corda.examples.obligation.flows.IssueObligation
 import net.corda.examples.obligation.flows.SettleObligation
 import net.corda.examples.obligation.flows.TransferObligation
-import net.corda.examples.obligation.IRSBasicInfo
+import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
@@ -192,8 +192,8 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
         val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
         val floatingRateIndex = FloatingRateIndex(paymentFrequencyRateIndex, "0.003000", "0.026587")
-        val floatingLeg = net.corda.examples.obligation.FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex)
-        val fixedLeg = net.corda.examples.obligation.FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA")
+        val floatingLeg = FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex)
+        val fixedLeg = FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA")
         var fixedFloatIRS:FixedFloatIRS
         var fixedLegBool = true
         if(type.equals("fixed",true))
