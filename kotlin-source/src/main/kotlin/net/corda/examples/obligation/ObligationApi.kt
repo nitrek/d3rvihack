@@ -198,10 +198,10 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         var fixedLegBool = true
         if(type.equals("fixed",true))
         {
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, partyIdentity, myIdentity)
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity,partyIdentity)
         }
     else{
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity, partyIdentity)
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg,partyIdentity, myIdentity)
             fixedLegBool = false
         }
 
@@ -210,6 +210,7 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
             val flowHandle = rpcOps.startFlowDynamic(
                     IssueIrsFixedFloatDeal.Initiator::class.java,
                     fixedFloatIRS,
+                    partyIdentity,
                     fixedLegBool
             )
 

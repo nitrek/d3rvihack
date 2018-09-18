@@ -50,7 +50,7 @@ object IssueIrsFixedFloatDeal {
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
                     .addOutputState(fixedFloatIRS, OBLIGATION_CONTRACT_ID)
-                    .addCommand(ObligationContract.Commands.Issue(), fixedFloatIRS.participants.map { it.owningKey })
+                    .addCommand(ObligationContract.Commands.FixedFloatDeal(), fixedFloatIRS.participants.map { it.owningKey })
                     .setTimeWindow(serviceHub.clock.instant(), 30.seconds)
 
             // Step 3. Sign the transaction.
