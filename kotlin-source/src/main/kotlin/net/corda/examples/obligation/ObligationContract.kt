@@ -17,6 +17,7 @@ class ObligationContract : Contract {
         class Issue : TypeOnlyCommandData(), Commands
         class Transfer : TypeOnlyCommandData(), Commands
         class Settle : TypeOnlyCommandData(), Commands
+        class FixedFloatDeal : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction): Unit {
@@ -26,6 +27,8 @@ class ObligationContract : Contract {
             is Commands.Issue -> verifyIssue(tx, setOfSigners)
             is Commands.Transfer -> verifyTransfer(tx, setOfSigners)
             is Commands.Settle -> verifySettle(tx, setOfSigners)
+            is Commands.FixedFloatDeal -> verifyFixedFloatDeal(tx, setOfSigners)
+
             else -> throw IllegalArgumentException("Unrecognised command.")
         }
     }
@@ -35,7 +38,11 @@ class ObligationContract : Contract {
             it.owningKey
         }.toSet()
     }
-
+    // This only allows one obligation issuance per transaction.
+    private fun verifyFixedFloatDeal(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
+        "No inputs should be consumed when issuing an obligation." using (tx.inputStates.isEmpty())
+        "Only one obligation state should be created when issuing an obligation." using (tx.outputStates.size == 1)
+    }
     // This only allows one obligation issuance per transaction.
     private fun verifyIssue(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
         "No inputs should be consumed when issuing an obligation." using (tx.inputStates.isEmpty())

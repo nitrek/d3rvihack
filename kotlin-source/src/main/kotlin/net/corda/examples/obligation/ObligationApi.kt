@@ -5,9 +5,11 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
+import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
 import net.corda.examples.obligation.flows.IssueObligation
 import net.corda.examples.obligation.flows.SettleObligation
 import net.corda.examples.obligation.flows.TransferObligation
+import net.corda.examples.obligation.IRSBasicInfo
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
@@ -166,4 +168,55 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
 
         return Response.status(status).entity(message).build()
     }
+//my api
+    @GET
+    @Path("irs-create-deal")
+    fun createDeal(@QueryParam(value = "type") type: String,
+                   @QueryParam(value = "party") party: String): Response {
+        // 1. Get party objects for the counterparty.
+        val partyIdentity = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
+                ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
+
+        val acc1 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
+        val acc2 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
+        val basicInfo = IRSBasicInfo("2018-09-24", "EUR", listOf(acc1, acc2), listOf(acc1, acc2))
+        val quantity = Notional("70000000.0", "EUR")
+        val paymentFrequency = PaymentFrequency("Y", 1)
+        val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
+        val terminationDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2019-09-26")
+        val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
+        val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
+        val floatingRateIndex = FloatingRateIndex(paymentFrequencyRateIndex, "0.003000", "0.026587")
+        val floatingLeg = net.corda.examples.obligation.FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex)
+        val fixedLeg = net.corda.examples.obligation.FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA")
+        var fixedFloatIRS:FixedFloatIRS
+        var fixedLegBool = true
+        if(type.equals("fixed",true))
+        {
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, partyIdentity, myIdentity)
+        }
+    else{
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity, partyIdentity)
+            fixedLegBool = false
+        }
+
+        // 3. Start the IssueObligation flow. We block and wait for the flow to return.
+        val (status, message) = try {
+            val flowHandle = rpcOps.startFlowDynamic(
+                    IssueIrsFixedFloatDeal.Initiator::class.java,
+                    fixedFloatIRS,
+                    fixedLegBool
+            )
+
+            val result = flowHandle.use { it.returnValue.getOrThrow() }
+            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
+        } catch (e: Exception) {
+            BAD_REQUEST to e.message
+        }
+
+        // 4. Return the result.
+        return Response.status(status).entity(message).build()
+    }
+
+
 }
