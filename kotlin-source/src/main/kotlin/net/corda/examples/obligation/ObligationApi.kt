@@ -1,5 +1,8 @@
 package net.corda.examples.obligation
 
+//cdm imports
+
+import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.CordaRPCOps
@@ -9,24 +12,16 @@ import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
 import net.corda.examples.obligation.flows.IssueObligation
 import net.corda.examples.obligation.flows.SettleObligation
 import net.corda.examples.obligation.flows.TransferObligation
-import net.corda.examples.obligation.FixedFloatIRS1
-import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
+import org.isda.cdm.Event
 import java.util.*
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
-import javax.ws.rs.QueryParam
+import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.CREATED
-//cdm imports
-
-import org.isda.cdm.Event;
-import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
 
 
 @Path("obligation")
@@ -180,15 +175,15 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         return Response.status(status).entity(message).build()
     }
 //my api
-    @GET
+    @POST
     @Path("irs-create-deal")
-    fun createDeal(@QueryParam(value = "payload") payload: String,
-                   @QueryParam(value = "party") party: String): Response {
+    fun createDeal(payload: String): Response {
         // 1. Get party objects for the counterparty.
+        val party="PartyB"
         val partyIdentity = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
                 ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
                 
-        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload,Event.class)
+        val event:Event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload,Event::class.java)
     /*    
         val acc1 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
         val acc2 = AccountDetails("D01364658230", "321100D01VD34VX8D846")

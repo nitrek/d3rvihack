@@ -1,1 +1,2 @@
-# Register here any CorDapp plugins extending from net.corda.node.CordaPluginRegistry.
+# Register here any serialization whitelists for 3rd party classes extending from net.corda.core.serialization.SerializationWhitelist
+net.corda.examples.obligation.SerializationWhitelist

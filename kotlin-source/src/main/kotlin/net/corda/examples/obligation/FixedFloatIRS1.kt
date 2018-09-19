@@ -4,10 +4,7 @@ import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
-import net.corda.examples.obligation.models.FixedLeg
-import net.corda.examples.obligation.models.FloatingLeg
-import net.corda.examples.obligation.models.IRSBasicInfo
-import org.isda.cdm.Event;
+import org.isda.cdm.Event
 
 data class FixedFloatIRS1(val event:Event,
                          val fixedLegParty:Party,

@@ -11,17 +11,18 @@ import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.seconds
 import net.corda.examples.obligation.FixedFloatIRS
+import net.corda.examples.obligation.FixedFloatIRS1
 import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
 import net.corda.examples.obligation.ObligationContract.Companion.OBLIGATION_CONTRACT_ID
 import java.util.*
-
 object IssueIrsFixedFloatDeal {
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(private val fixedFloatIRS: FixedFloatIRS,
-                    private val lender: Party,
-                    private val fixedLeg:Boolean) : ObligationBaseFlow() {
+    class Initiator(private val fixedFloatIRS: FixedFloatIRS1,
+                    private val partyIdentity: Party,
+                    private val myIdentity: Party
+                    ) : ObligationBaseFlow() {
 
         companion object {
             object INITIALISING : Step("Performing initial steps.")
@@ -43,9 +44,9 @@ object IssueIrsFixedFloatDeal {
         override fun call(): SignedTransaction {
             // Step 1. Initialisation.
             progressTracker.currentStep = INITIALISING
-            var ourSigningKey = fixedFloatIRS.fixedLegParty.owningKey
-            if(!fixedLeg)
-                ourSigningKey = fixedFloatIRS.floatingLegParty.owningKey
+            var ourSigningKey = myIdentity.owningKey
+           /* if(!fixedLeg)
+                ourSigningKey = fixedFloatIRS.floatingLegParty.owningKey*/
             // Step 2. Building.
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
@@ -59,7 +60,7 @@ object IssueIrsFixedFloatDeal {
 
             // Step 4. Get the counter-party signature.
             progressTracker.currentStep = COLLECTING
-            val lenderFlow = initiateFlow(lender)
+            val lenderFlow = initiateFlow(partyIdentity)
             val stx = subFlow(CollectSignaturesFlow(
                     ptx,
                     setOf(lenderFlow),
