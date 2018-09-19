@@ -1,5 +1,6 @@
 package net.corda.examples.obligation
 
+import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.CordaRPCOps
@@ -13,11 +14,9 @@ import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
+import org.isda.cdm.Event
 import java.util.*
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
-import javax.ws.rs.QueryParam
+import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
@@ -174,17 +173,17 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         return Response.status(status).entity(message).build()
     }
 //my api
-    @GET
+    @POST
     @Path("irs-create-deal")
-    fun createDeal(@QueryParam(value = "type") type: String,
-                   @QueryParam(value = "party") party: String): Response {
+    fun createDeal(payload:String): Response {
         // 1. Get party objects for the counterparty.
-        val partyIdentity = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
-                ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
-
-        val acc1 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
-        val acc2 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
-        val basicInfo = IRSBasicInfo("2018-09-24", "EUR", listOf(acc1, acc2), listOf(acc1, acc2))
+        val partyIdentity = rpcOps.partiesFromName("PartyB", exactMatch = false).singleOrNull()
+               ?: throw IllegalStateException("Couldn't lookup node identity for PartyB.")
+        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val contract = event.primitive.newTrade.get(0).contract
+        val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
+        val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(0).servicingParty)
+        val basicInfo = IRSBasicInfo(contract.tradeDate.toString(),listOf(acc1), listOf(acc1))
         val quantity = Notional("70000000.0", "EUR")
         val paymentFrequency = PaymentFrequency("Y", 1)
         val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
@@ -192,9 +191,10 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
         val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
         val floatingRateIndex = FloatingRateIndex(paymentFrequencyRateIndex, "0.003000", "0.026587")
-        val floatingLeg = FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex)
-        val fixedLeg = FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA")
+        val floatingLeg = FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex,"EUR")
+        val fixedLeg = FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA","EUR")
         var fixedFloatIRS:FixedFloatIRS
+        val type = "fixed"
         var fixedLegBool = true
         if(type.equals("fixed",true))
         {
@@ -204,14 +204,13 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
             fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg,partyIdentity, myIdentity)
             fixedLegBool = false
         }
-
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
             val flowHandle = rpcOps.startFlowDynamic(
                     IssueIrsFixedFloatDeal.Initiator::class.java,
                     fixedFloatIRS,
-                    partyIdentity,
-                    fixedLegBool
+                    fixedFloatIRS.floatingLegParty,
+                    true
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }

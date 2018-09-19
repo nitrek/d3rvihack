@@ -1,6 +1,7 @@
 package net.corda.examples.obligation.models
 
 import net.corda.core.serialization.CordaSerializable
+import java.util.*
 
 @CordaSerializable
 data class FixedLeg(val payerPartyReference : String,
@@ -11,6 +12,7 @@ data class FixedLeg(val payerPartyReference : String,
                     val terminationDate: CalculationPeriodDateReference,
                     val dayCountBasis:String,
                     val paymentCalendar: CalculationPeriodDateReference,
-                    val fixedRate:String)
+                    val fixedRate:String,
+                    val currency: String)
 {
 }
