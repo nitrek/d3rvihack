@@ -9,6 +9,7 @@ import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
 import net.corda.examples.obligation.flows.IssueObligation
 import net.corda.examples.obligation.flows.SettleObligation
 import net.corda.examples.obligation.flows.TransferObligation
+import net.corda.examples.obligation.FixedFloatIRS1
 import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
@@ -22,6 +23,11 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.CREATED
+//cdm imports
+
+import org.isda.cdm.Event;
+import com.regnosys.rosetta.common.serialisation.RosettaObjectMapper;
+
 
 @Path("obligation")
 class ObligationApi(val rpcOps: CordaRPCOps) {
@@ -176,12 +182,14 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
 //my api
     @GET
     @Path("irs-create-deal")
-    fun createDeal(@QueryParam(value = "type") type: String,
+    fun createDeal(@QueryParam(value = "payload") payload: String,
                    @QueryParam(value = "party") party: String): Response {
         // 1. Get party objects for the counterparty.
         val partyIdentity = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
                 ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
-
+                
+        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload,Event.class)
+    /*    
         val acc1 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
         val acc2 = AccountDetails("D01364658230", "321100D01VD34VX8D846")
         val basicInfo = IRSBasicInfo("2018-09-24", "EUR", listOf(acc1, acc2), listOf(acc1, acc2))
@@ -196,14 +204,9 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         val fixedLeg = FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA")
         var fixedFloatIRS:FixedFloatIRS
         var fixedLegBool = true
-        if(type.equals("fixed",true))
-        {
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity,partyIdentity)
-        }
-    else{
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg,partyIdentity, myIdentity)
-            fixedLegBool = false
-        }
+   */
+        val fixedFloatIRS = FixedFloatIRS1(event,myIdentity,partyIdentity)
+   
 
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
@@ -211,7 +214,7 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
                     IssueIrsFixedFloatDeal.Initiator::class.java,
                     fixedFloatIRS,
                     partyIdentity,
-                    fixedLegBool
+                    myIdentity
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }
