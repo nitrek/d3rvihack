@@ -21,7 +21,7 @@ import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.CREATED
 
 @Path("obligation")
-class ObligationApi(val rpcOps: CordaRPCOps) {
+class API(val rpcOps: CordaRPCOps) {
 
     private val myIdentity = rpcOps.nodeInfo().legalIdentities.first()
 

@@ -9,8 +9,8 @@ import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.seconds
 import net.corda.examples.obligation.FixedFloatIRS
-import net.corda.examples.obligation.ObligationContract
-import net.corda.examples.obligation.ObligationContract.Companion.OBLIGATION_CONTRACT_ID
+import net.corda.examples.obligation.IRSContract
+import net.corda.examples.obligation.IRSContract.Companion.OBLIGATION_CONTRACT_ID
 
 object IssueIrsFixedFloatDeal {
     @InitiatingFlow
@@ -48,7 +48,7 @@ object IssueIrsFixedFloatDeal {
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
                     .addOutputState(fixedFloatIRS, OBLIGATION_CONTRACT_ID)
-                    .addCommand(ObligationContract.Commands.FixedFloatDeal(), fixedFloatIRS.participants.map { it.owningKey })
+                    .addCommand(IRSContract.Commands.FixedFloatDeal(), fixedFloatIRS.participants.map { it.owningKey })
                     .setTimeWindow(serviceHub.clock.instant(), 30.seconds)
 
             // Step 3. Sign the transaction.
