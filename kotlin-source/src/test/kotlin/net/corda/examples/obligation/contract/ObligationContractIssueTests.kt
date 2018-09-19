@@ -1,7 +1,6 @@
 package net.corda.examples.obligation.contract
 
 import net.corda.core.identity.CordaX500Name
-import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
 import net.corda.examples.obligation.ObligationContract.Companion.OBLIGATION_CONTRACT_ID
 import net.corda.finance.DOLLARS

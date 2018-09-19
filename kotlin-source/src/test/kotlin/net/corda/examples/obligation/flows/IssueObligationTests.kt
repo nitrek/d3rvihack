@@ -1,6 +1,5 @@
 package net.corda.examples.obligation.flows
 
-import net.corda.examples.obligation.Obligation
 import net.corda.finance.POUNDS
 import net.corda.testing.core.chooseIdentity
 import org.junit.Test

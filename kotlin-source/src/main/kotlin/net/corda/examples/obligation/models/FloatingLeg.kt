@@ -12,7 +12,6 @@ data class FloatingLeg(val payerPartyReference : String,
                        val dayCountBasis:String,
                        val paymentCalendar: CalculationPeriodDateReference,
                        val resetDates:String,
-                       val floatingRateIndex: FloatingRateIndex,
-                       val currency: String)
+                       val floatingRateIndex: FloatingRateIndex)
 {
 }

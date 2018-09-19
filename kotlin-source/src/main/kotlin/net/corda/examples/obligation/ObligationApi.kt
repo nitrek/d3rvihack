@@ -7,9 +7,7 @@ import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
-import net.corda.examples.obligation.flows.IssueObligation
-import net.corda.examples.obligation.flows.SettleObligation
-import net.corda.examples.obligation.flows.TransferObligation
+import net.corda.examples.obligation.flows.IssueIrsFloatFloatDeal
 import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
@@ -40,139 +38,18 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
             .map { it.legalIdentities.first().name.organisation })
 
     @GET
-    @Path("owed-per-currency")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun owedPerCurrency() = rpcOps.vaultQuery(Obligation::class.java).states
-            .filter { (state) -> state.data.lender != myIdentity }
-            .map { (state) -> state.data.amount }
-            .groupBy({ amount -> amount.token }, { (quantity) -> quantity })
-            .mapValues { it.value.sum() }
-
-    @GET
-    @Path("obligations")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun obligations() = rpcOps.vaultQuery(Obligation::class.java).states
-
-    @GET
-    @Path("cash")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun cash() = rpcOps.vaultQuery(Cash.State::class.java).states
-
-    @GET
-    @Path("getirsdeals")
+    @Path("get-irs-fixed-float")
     @Produces(MediaType.APPLICATION_JSON)
     fun getirsdeals() = rpcOps.vaultQuery(FixedFloatIRS::class.java).states
 
     @GET
-    @Path("cash-balances")
+    @Path("get-irs-float-float")
     @Produces(MediaType.APPLICATION_JSON)
-    fun getCashBalances() = rpcOps.getCashBalances()
+    fun getirsdealsFF() = rpcOps.vaultQuery(FloatFloatIRS::class.java).states
 
-    @GET
-    @Path("self-issue-cash")
-    fun selfIssueCash(@QueryParam(value = "amount") amount: Int,
-                      @QueryParam(value = "currency") currency: String): Response {
 
-        // 1. Prepare issue request.
-        val issueAmount = Amount(amount.toLong() * 100, Currency.getInstance(currency))
-        val notary = rpcOps.notaryIdentities().firstOrNull() ?: throw IllegalStateException("Could not find a notary.")
-        val issueRef = OpaqueBytes.of(0)
-        val issueRequest = CashIssueFlow.IssueRequest(issueAmount, issueRef, notary)
 
-        // 2. Start flow and wait for response.
-        val (status, message) = try {
-            val flowHandle = rpcOps.startFlowDynamic(CashIssueFlow::class.java, issueRequest)
-            val result = flowHandle.use { it.returnValue.getOrThrow() }
-            CREATED to result.stx.tx.outputs.single().data
-        } catch (e: Exception) {
-            BAD_REQUEST to e.message
-        }
-
-        // 3. Return the response.
-        return Response.status(status).entity(message).build()
-    }
-
-    @GET
-    @Path("issue-obligation")
-    fun issueObligation(@QueryParam(value = "amount") amount: Int,
-                        @QueryParam(value = "currency") currency: String,
-                        @QueryParam(value = "party") party: String): Response {
-        // 1. Get party objects for the counterparty.
-        val lenderIdentity = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
-                ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
-
-        // 2. Create an amount object.
-        val issueAmount = Amount(amount.toLong() * 100, Currency.getInstance(currency))
-
-        // 3. Start the IssueObligation flow. We block and wait for the flow to return.
-        val (status, message) = try {
-            val flowHandle = rpcOps.startFlowDynamic(
-                    IssueObligation.Initiator::class.java,
-                    issueAmount,
-                    lenderIdentity,
-                    true
-            )
-
-            val result = flowHandle.use { it.returnValue.getOrThrow() }
-            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
-        } catch (e: Exception) {
-            BAD_REQUEST to e.message
-        }
-
-        // 4. Return the result.
-        return Response.status(status).entity(message).build()
-    }
-
-    @GET
-    @Path("transfer-obligation")
-    fun transferObligation(@QueryParam(value = "id") id: String,
-                           @QueryParam(value = "party") party: String): Response {
-        val linearId = UniqueIdentifier.fromString(id)
-        val newLender = rpcOps.partiesFromName(party, exactMatch = false).singleOrNull()
-                ?: throw IllegalStateException("Couldn't lookup node identity for $party.")
-
-        val (status, message) = try {
-            val flowHandle = rpcOps.startFlowDynamic(
-                    TransferObligation.Initiator::class.java,
-                    linearId,
-                    newLender,
-                    true
-            )
-
-            flowHandle.use { flowHandle.returnValue.getOrThrow() }
-            CREATED to "Obligation $id transferred to $party."
-        } catch (e: Exception) {
-            BAD_REQUEST to e.message
-        }
-
-        return Response.status(status).entity(message).build()
-    }
-
-    @GET
-    @Path("settle-obligation")
-    fun settleObligation(@QueryParam(value = "id") id: String,
-                         @QueryParam(value = "amount") amount: Int,
-                         @QueryParam(value = "currency") currency: String): Response {
-        val linearId = UniqueIdentifier.fromString(id)
-        val settleAmount = Amount(amount.toLong() * 100, Currency.getInstance(currency))
-
-        val (status, message) = try {
-            val flowHandle = rpcOps.startFlowDynamic(
-                    SettleObligation.Initiator::class.java,
-                    linearId,
-                    settleAmount,
-                    true
-            )
-
-            flowHandle.use { flowHandle.returnValue.getOrThrow() }
-            CREATED to "$amount $currency paid off on obligation id $id."
-        } catch (e: Exception) {
-            BAD_REQUEST to e.message
-        }
-
-        return Response.status(status).entity(message).build()
-    }
-//my api
+    //my api
     @POST
     @Path("irs-create-deal")
     fun createDeal(payload:String): Response {
@@ -181,20 +58,63 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
                ?: throw IllegalStateException("Couldn't lookup node identity for PartyB.")
         val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
         val contract = event.primitive.newTrade.get(0).contract
+        val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
-        val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(0).servicingParty)
-        val basicInfo = IRSBasicInfo(contract.tradeDate.toString(),listOf(acc1), listOf(acc1))
-        val quantity = Notional("70000000.0", "EUR")
+        val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),listOf(acc1), listOf(acc1))
+        //val quantity = Notional("70000000.0", "EUR")
         val paymentFrequency = PaymentFrequency("Y", 1)
         val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
         val terminationDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2019-09-26")
         val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
         val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
-        val floatingRateIndex = FloatingRateIndex(paymentFrequencyRateIndex, "0.003000", "0.026587")
-        val floatingLeg = FloatingLeg("0259617734468", "0755871686290", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "resetData", floatingRateIndex,"EUR")
-        val fixedLeg = FixedLeg("0755871686290", "0259617734468", quantity, paymentFrequency, effictiveDate, terminationDate, "_30_360", paymentCalander, "NA","EUR")
-        var fixedFloatIRS:FixedFloatIRS
-        val type = "fixed"
+        val floatingRateIndex = FloatingRateIndex( "0.003000", "0.026587")
+        var floatIndex =1;
+        var fixedIndex =0;
+        var type = "fixed"
+        if(interestRatePayout.get(0).resetDates.calculationPeriodDatesReference.contains("float")) {
+            floatIndex =0;
+            fixedIndex =1;
+            type="float"
+        }
+        val floatingLeg = FloatingLeg(interestRatePayout.get(floatIndex).payerReceiver.payerPartyReference, interestRatePayout.get(floatIndex).payerReceiver.receiverPartyReference,
+                Notional(interestRatePayout.get(floatIndex).quantity.notionalSchedule.notionalStepSchedule.initialValue.toString(),
+                        interestRatePayout.get(floatIndex).quantity.notionalSchedule.notionalStepSchedule.currency.toString()),
+                PaymentFrequency(interestRatePayout.get(floatIndex).paymentDates.paymentFrequency.period.toString(),interestRatePayout.get(floatIndex).paymentDates.paymentFrequency.periodMultiplier),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString()),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.unadjustedDate.toString())
+                , interestRatePayout.get(floatIndex).dayCountFraction.toString(),
+
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
+                        ""), interestRatePayout.get(floatIndex).resetDates.toString(),
+                FloatingRateIndex(interestRatePayout.get(floatIndex).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
+                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()))
+
+
+    val fixedLeg = FixedLeg(interestRatePayout.get(fixedIndex).payerReceiver.payerPartyReference, interestRatePayout.get(fixedIndex).payerReceiver.receiverPartyReference,
+            Notional(interestRatePayout.get(fixedIndex).quantity.notionalSchedule.notionalStepSchedule.initialValue.toString(),
+                    interestRatePayout.get(fixedIndex).quantity.notionalSchedule.notionalStepSchedule.currency.toString()),
+            PaymentFrequency(interestRatePayout.get(fixedIndex).paymentDates.paymentFrequency.period.toString(),interestRatePayout.get(fixedIndex).paymentDates.paymentFrequency.periodMultiplier),
+            CalculationPeriodDateReference(listOf(interestRatePayout.get(fixedIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessCenters.toString()),
+                    interestRatePayout.get(fixedIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessDayConvention.toString(),
+                    interestRatePayout.get(fixedIndex).calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString()),
+            CalculationPeriodDateReference(listOf(interestRatePayout.get(fixedIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessCenters.toString()),
+                    interestRatePayout.get(fixedIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessDayConvention.toString(),
+                    interestRatePayout.get(fixedIndex).calculationPeriodDates.terminationDate.unadjustedDate.toString())
+            , interestRatePayout.get(fixedIndex).dayCountFraction.toString(),
+            CalculationPeriodDateReference(listOf(interestRatePayout.get(fixedIndex).paymentDates.paymentDatesAdjustments.businessCenters.toString()),
+                    interestRatePayout.get(fixedIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
+                    ""),
+            interestRatePayout.get(fixedIndex).interestRate.fixedRate.initialValue.toString()
+            )
+
+            var fixedFloatIRS:FixedFloatIRS
+
         var fixedLegBool = true
         if(type.equals("fixed",true))
         {
@@ -210,7 +130,7 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
                     IssueIrsFixedFloatDeal.Initiator::class.java,
                     fixedFloatIRS,
                     fixedFloatIRS.floatingLegParty,
-                    true
+                    fixedLegBool
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }
@@ -223,5 +143,83 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
         return Response.status(status).entity(message).build()
     }
 
+    @POST
+    @Path("irs-create-deal-float")
+    fun createDealFloat(payload:String): Response {
+        // 1. Get party objects for the counterparty.
+        val partyIdentity = rpcOps.partiesFromName("PartyB", exactMatch = false).singleOrNull()
+                ?: throw IllegalStateException("Couldn't lookup node identity for PartyB.")
+        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val contract = event.primitive.newTrade.get(0).contract
+        val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
+        val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
+        val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),listOf(acc1), listOf(acc1))
+        //val quantity = Notional("70000000.0", "EUR")
+        val paymentFrequency = PaymentFrequency("Y", 1)
+        val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
+        val terminationDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2019-09-26")
+        val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
+        val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
+        val floatingRateIndex = FloatingRateIndex( "0.003000", "0.026587")
 
+        var floatIndex =0;
+        var floatIndex1 =1;
+        val floatingLeg1 = FloatingLeg(interestRatePayout.get(floatIndex).payerReceiver.payerPartyReference, interestRatePayout.get(floatIndex).payerReceiver.receiverPartyReference,
+                Notional(interestRatePayout.get(floatIndex).quantity.notionalSchedule.notionalStepSchedule.initialValue.toString(),
+                        interestRatePayout.get(floatIndex).quantity.notionalSchedule.notionalStepSchedule.currency.toString()),
+                PaymentFrequency(interestRatePayout.get(floatIndex).paymentDates.paymentFrequency.period.toString(),interestRatePayout.get(floatIndex).paymentDates.paymentFrequency.periodMultiplier),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString()),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex).calculationPeriodDates.terminationDate.unadjustedDate.toString())
+                , interestRatePayout.get(floatIndex).dayCountFraction.toString(),
+
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
+                        ""), interestRatePayout.get(floatIndex).resetDates.toString(),
+                FloatingRateIndex(interestRatePayout.get(floatIndex).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
+                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()))
+
+
+        val floatingLeg2 = FloatingLeg(interestRatePayout.get(floatIndex1).payerReceiver.payerPartyReference, interestRatePayout.get(floatIndex1).payerReceiver.receiverPartyReference,
+                Notional(interestRatePayout.get(floatIndex1).quantity.notionalSchedule.notionalStepSchedule.initialValue.toString(),
+                        interestRatePayout.get(floatIndex1).quantity.notionalSchedule.notionalStepSchedule.currency.toString()),
+                PaymentFrequency(interestRatePayout.get(floatIndex1).paymentDates.paymentFrequency.period.toString(),interestRatePayout.get(floatIndex1).paymentDates.paymentFrequency.periodMultiplier),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex1).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex1).calculationPeriodDates.effectiveDate.adjustableDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex1).calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString()),
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex1).calculationPeriodDates.terminationDate.dateAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex1).calculationPeriodDates.terminationDate.dateAdjustments.businessDayConvention.toString(),
+                        interestRatePayout.get(floatIndex1).calculationPeriodDates.terminationDate.unadjustedDate.toString())
+                , interestRatePayout.get(floatIndex1).dayCountFraction.toString(),
+
+                CalculationPeriodDateReference(listOf(interestRatePayout.get(floatIndex1).paymentDates.paymentDatesAdjustments.businessCenters.toString()),
+                        interestRatePayout.get(floatIndex1).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
+                        ""), interestRatePayout.get(floatIndex1).resetDates.toString(),
+                FloatingRateIndex(interestRatePayout.get(floatIndex1).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
+                        interestRatePayout.get(floatIndex1).interestRate.floatingRate.initialRate.toString()))
+
+
+            val floatFloatIRS = net.corda.examples.obligation.FloatFloatIRS(basicInfo, floatingLeg1, floatingLeg2, myIdentity,partyIdentity)
+
+        // 3. Start the IssueObligation flow. We block and wait for the flow to return.
+        val (status, message) = try {
+            val flowHandle = rpcOps.startFlowDynamic(
+                    IssueIrsFloatFloatDeal.Initiator::class.java,
+                    floatFloatIRS,
+                    floatFloatIRS.floatingLeg2Party
+            )
+
+            val result = flowHandle.use { it.returnValue.getOrThrow() }
+            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
+        } catch (e: Exception) {
+            BAD_REQUEST to e.message
+        }
+
+        // 4. Return the result.
+        return Response.status(status).entity(message).build()
+    }
 }

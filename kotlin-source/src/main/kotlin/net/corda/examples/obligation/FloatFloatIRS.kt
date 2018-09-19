@@ -9,7 +9,7 @@ import net.corda.examples.obligation.models.FloatingLeg
 import net.corda.examples.obligation.models.IRSBasicInfo
 
 data class FloatFloatIRS(val basicInfo: IRSBasicInfo,
-                         val floatingLeg1: FixedLeg,
+                         val floatingLeg1: FloatingLeg,
                          val floatingLeg2: FloatingLeg,
                          val floatingLeg1Party:Party,
                          val floatingLeg2Party:Party,

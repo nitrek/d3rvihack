@@ -4,10 +4,8 @@ import net.corda.core.contracts.CommandData
 import net.corda.core.contracts.ContractState
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.CordaX500Name
-import net.corda.examples.obligation.Obligation
 import net.corda.finance.DOLLARS
 import net.corda.finance.POUNDS
-import net.corda.testing.contracts.DummyContract
 import net.corda.testing.core.TestIdentity
 import net.corda.testing.node.MockServices
 import net.corda.testing.node.makeTestIdentityService

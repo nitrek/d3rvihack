@@ -1,8 +1,6 @@
 package net.corda.examples.obligation.flows
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.confidential.SwapIdentitiesFlow
-import net.corda.core.contracts.Amount
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
@@ -11,17 +9,15 @@ import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.seconds
 import net.corda.examples.obligation.FixedFloatIRS
-import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
 import net.corda.examples.obligation.ObligationContract.Companion.OBLIGATION_CONTRACT_ID
-import java.util.*
 
 object IssueIrsFixedFloatDeal {
     @InitiatingFlow
     @StartableByRPC
     class Initiator(private val fixedFloatIRS: FixedFloatIRS,
-                    private val lender: Party,
-                    private val fixedLeg:Boolean) : ObligationBaseFlow() {
+                    private val party2: Party,
+                    private val fixedLeg:Boolean) : FlowLogic<SignedTransaction>() {
 
         companion object {
             object INITIALISING : Step("Performing initial steps.")
@@ -42,7 +38,9 @@ object IssueIrsFixedFloatDeal {
         @Suspendable
         override fun call(): SignedTransaction {
             // Step 1. Initialisation.
+
             progressTracker.currentStep = INITIALISING
+            val firstNotary = serviceHub.networkMapCache.notaryIdentities.firstOrNull()?: throw FlowException("No available notary.")
             var ourSigningKey = fixedFloatIRS.fixedLegParty.owningKey
             if(!fixedLeg)
                 ourSigningKey = fixedFloatIRS.floatingLegParty.owningKey
@@ -59,7 +57,7 @@ object IssueIrsFixedFloatDeal {
 
             // Step 4. Get the counter-party signature.
             progressTracker.currentStep = COLLECTING
-            val lenderFlow = initiateFlow(lender)
+            val lenderFlow = initiateFlow(party2)
             val stx = subFlow(CollectSignaturesFlow(
                     ptx,
                     setOf(lenderFlow),
