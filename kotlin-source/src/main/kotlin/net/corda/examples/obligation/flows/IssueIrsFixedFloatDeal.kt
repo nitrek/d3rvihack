@@ -17,7 +17,7 @@ object IssueIrsFixedFloatDeal {
     @StartableByRPC
     class Initiator(private val fixedFloatIRS: FixedFloatIRS,
                     private val party2: Party,
-                    private val fixedLeg:Boolean) : FlowLogic<SignedTransaction>() {
+                     private val myIdentity: Party) : FlowLogic<SignedTransaction>() {
 
         companion object {
             object INITIALISING : Step("Performing initial steps.")
@@ -41,9 +41,7 @@ object IssueIrsFixedFloatDeal {
 
             progressTracker.currentStep = INITIALISING
             val firstNotary = serviceHub.networkMapCache.notaryIdentities.firstOrNull()?: throw FlowException("No available notary.")
-            var ourSigningKey = fixedFloatIRS.fixedLegParty.owningKey
-            if(!fixedLeg)
-                ourSigningKey = fixedFloatIRS.floatingLegParty.owningKey
+            var ourSigningKey = myIdentity.owningKey
             // Step 2. Building.
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
@@ -57,10 +55,10 @@ object IssueIrsFixedFloatDeal {
 
             // Step 4. Get the counter-party signature.
             progressTracker.currentStep = COLLECTING
-            val lenderFlow = initiateFlow(party2)
+            val party2Flow = initiateFlow(party2)
             val stx = subFlow(CollectSignaturesFlow(
                     ptx,
-                    setOf(lenderFlow),
+                    setOf(party2Flow),
                     listOf(ourSigningKey),
                     COLLECTING.childProgressTracker())
             )

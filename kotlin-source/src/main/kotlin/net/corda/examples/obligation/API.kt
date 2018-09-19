@@ -54,9 +54,10 @@ class API(val rpcOps: CordaRPCOps) {
     @Path("irs-create-deal")
     fun createDeal(payload:String): Response {
         // 1. Get party objects for the counterparty.
-        val partyIdentity = rpcOps.partiesFromName("PartyB", exactMatch = false).singleOrNull()
-               ?: throw IllegalStateException("Couldn't lookup node identity for PartyB.")
         val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+               ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
+       
         val contract = event.primitive.newTrade.get(0).contract
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
@@ -69,13 +70,13 @@ class API(val rpcOps: CordaRPCOps) {
         val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
         val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
         val floatingRateIndex = FloatingRateIndex( "0.003000", "0.026587")
-        var floatIndex =1;
-        var fixedIndex =0;
-        var type = "fixed"
-        if(interestRatePayout.get(0).resetDates.calculationPeriodDatesReference.contains("float")) {
-            floatIndex =0;
-            fixedIndex =1;
-            type="float"
+        var floatIndex =0;
+        var fixedIndex =1;
+        var type = "float"
+        if(interestRatePayout.get(1).resetDates.calculationPeriodDatesReference.contains("float")) {
+            floatIndex =1;
+            fixedIndex =0;
+            type="fixed"
         }
         val floatingLeg = FloatingLeg(interestRatePayout.get(floatIndex).payerReceiver.payerPartyReference, interestRatePayout.get(floatIndex).payerReceiver.receiverPartyReference,
                 Notional(interestRatePayout.get(floatIndex).quantity.notionalSchedule.notionalStepSchedule.initialValue.toString(),
@@ -112,9 +113,8 @@ class API(val rpcOps: CordaRPCOps) {
                     ""),
             interestRatePayout.get(fixedIndex).interestRate.fixedRate.initialValue.toString()
             )
-
+            
             var fixedFloatIRS:FixedFloatIRS
-
         var fixedLegBool = true
         if(type.equals("fixed",true))
         {
@@ -129,8 +129,8 @@ class API(val rpcOps: CordaRPCOps) {
             val flowHandle = rpcOps.startFlowDynamic(
                     IssueIrsFixedFloatDeal.Initiator::class.java,
                     fixedFloatIRS,
-                    fixedFloatIRS.floatingLegParty,
-                    fixedLegBool
+                    partyIdentity,
+                    myIdentity
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }
@@ -147,9 +147,10 @@ class API(val rpcOps: CordaRPCOps) {
     @Path("irs-create-deal-float")
     fun createDealFloat(payload:String): Response {
         // 1. Get party objects for the counterparty.
-        val partyIdentity = rpcOps.partiesFromName("PartyB", exactMatch = false).singleOrNull()
-                ?: throw IllegalStateException("Couldn't lookup node identity for PartyB.")
-        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+         val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+                ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
+        //val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
         val contract = event.primitive.newTrade.get(0).contract
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
