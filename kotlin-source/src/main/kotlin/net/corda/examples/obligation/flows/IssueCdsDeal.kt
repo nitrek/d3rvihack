@@ -8,14 +8,15 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.seconds
+import net.corda.examples.obligation.CreditDefaultSwap
 import net.corda.examples.obligation.FloatFloatIRS
 import net.corda.examples.obligation.IRSContract
 import net.corda.examples.obligation.IRSContract.Companion.OBLIGATION_CONTRACT_ID
 
-object IssueIrsFloatFloatDeal {
+object IssueCdsDeal {
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(private val floatFloatIRS: FloatFloatIRS,
+    class Initiator(private val creditDefaultSwap: CreditDefaultSwap,
                     private val party2: Party) : FlowLogic<SignedTransaction>() {
 
         companion object {
@@ -39,12 +40,12 @@ object IssueIrsFloatFloatDeal {
             // Step 1. Initialisation.
             progressTracker.currentStep = INITIALISING
             val firstNotary = serviceHub.networkMapCache.notaryIdentities.firstOrNull()?: throw FlowException("No available notary.")
-            var ourSigningKey = floatFloatIRS.floatingLeg1Party.owningKey
+            var ourSigningKey = creditDefaultSwap.buyer.owningKey
             // Step 2. Building.
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
-                    .addOutputState(floatFloatIRS, OBLIGATION_CONTRACT_ID)
-                    .addCommand(IRSContract.Commands.FloatFloatDeal(), floatFloatIRS.participants.map { it.owningKey })
+                    .addOutputState(creditDefaultSwap, OBLIGATION_CONTRACT_ID)
+                    .addCommand(IRSContract.Commands.FloatFloatDeal(), creditDefaultSwap.participants.map { it.owningKey })
                     .setTimeWindow(serviceHub.clock.instant(), 30.seconds)
 
             // Step 3. Sign the transaction.

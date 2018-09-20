@@ -6,13 +6,17 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
+import net.corda.examples.obligation.flows.IssueCdsDeal
 import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
 import net.corda.examples.obligation.flows.IssueIrsFloatFloatDeal
 import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
 import net.corda.finance.flows.CashIssueFlow
+import org.isda.cdm.ContractIdentifier
+import org.isda.cdm.ContractualProduct
 import org.isda.cdm.Event
+import org.isda.cdm.IdentifierValue
 import java.util.*
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
@@ -212,6 +216,56 @@ class API(val rpcOps: CordaRPCOps) {
                     IssueIrsFloatFloatDeal.Initiator::class.java,
                     floatFloatIRS,
                     floatFloatIRS.floatingLeg2Party
+            )
+
+            val result = flowHandle.use { it.returnValue.getOrThrow() }
+            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
+        } catch (e: Exception) {
+            BAD_REQUEST to e.message
+        }
+
+        // 4. Return the result.
+        return Response.status(status).entity(message).build()
+    }
+
+    @POST
+    @Path("cds-create")
+    fun createCreditDefaultSwap(payload:String): Response {
+        // 1. Get party objects for the counterparty.
+        val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+                ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
+        //val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
+        val contract = event.primitive.newTrade.get(0).contract
+        val contractIdentifier1 = contract.contractIdentifier.get(0)
+        val eventIdentifier =  contractIdentifier1.identifierValue.identifier
+        val version = contractIdentifier1.version
+        val contractIdentifier = net.corda.examples.obligation.models.ContractIdentifier(eventIdentifier,version.toString())
+        val terms = contract.contractualProduct.economicTerms.payout.creditDefaultPayout.generalTerms
+
+        val payout = contract.contractualProduct.economicTerms.payout.interestRatePayout.get(0)
+        val buyer = if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
+        val seller =  if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
+
+        val generalTerms = GeneralTerms(terms.dateAdjustments.businessCenters.businessCenter.map{it.toString()},terms.dateAdjustments.businessDayConvention.toString(),terms.indexReferenceInformation.indexName,terms.indexReferenceInformation.indexSeries.toString())
+        val interestRatePayout = InterestRatePayout(payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.interestRate.fixedRate.initialValue.toString(),payout.dayCountFraction.toString())
+        val feeValue = contract.contractualProduct.economicTerms.payout.cashflow.get(0).cashflowAmount
+        val premiumFee = PremiumFee(feeValue.amount.toString(),feeValue.currency.toString())
+        val protection = contract.contractualProduct.economicTerms.payout.creditDefaultPayout.protectionTerms
+        val protectionTerms = ProtectionTerms(protection.notionalAmount.amount.toString(),protection.notionalAmount.currency.toString())
+
+        val detailsModel = TradeDetails(contract.contractualProduct.productIdentification.productQualifier,contract.tradeDate.adjustableDate.unadjustedDate.toString())
+
+
+
+        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller)
+
+        // 3. Start the IssueObligation flow. We block and wait for the flow to return.
+        val (status, message) = try {
+            val flowHandle = rpcOps.startFlowDynamic(
+                    IssueCdsDeal.Initiator::class.java,
+                    creditDefaultSwap,
+                    creditDefaultSwap.seller
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }

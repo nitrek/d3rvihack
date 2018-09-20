@@ -12,7 +12,7 @@ import net.corda.examples.obligation.FloatFloatIRS
 import net.corda.examples.obligation.IRSContract
 import net.corda.examples.obligation.IRSContract.Companion.OBLIGATION_CONTRACT_ID
 
-object IssueIrsFloatFloatDeal {
+object FullTermination {
     @InitiatingFlow
     @StartableByRPC
     class Initiator(private val floatFloatIRS: FloatFloatIRS,
@@ -76,4 +76,8 @@ object IssueIrsFloatFloatDeal {
         }
     }
 }
-
+internal class SignTxFlowNoChecking(otherFlow: FlowSession) : SignTransactionFlow(otherFlow) {
+    override fun checkTransaction(tx: SignedTransaction) {
+        // TODO: Add checking here.
+    }
+}
