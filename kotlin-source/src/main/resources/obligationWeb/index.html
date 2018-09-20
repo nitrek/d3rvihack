@@ -209,33 +209,26 @@
 <div class="row">
     <div class="col-md-1"></div>
     <div class="col-md-10">
-        <div ng-show="!demoApp.ious.length" class="panel panel-primary">
+        <div ng-show="!demoApp.fxf.length" class="panel panel-primary">
             <div class="panel-heading">
                 <h3 class="panel-title">There are no recorded IOUs</h3>
             </div>
             <div class="panel-body">Use the "Create IOU" button to send an IOU to a peer.</div>
         </div>
-        <div ng-show="demoApp.ious.length" class="panel panel-primary">
+        <div ng-show="demoApp.fxf.length" class="panel panel-primary">
             <div class="panel-heading">
-                <h3 class="panel-title">Recorded IOUs:</h3>
+                <h3 class="panel-title">Fixed Float iRS:</h3>
             </div>
             <div class="panel-body">
                 <table class="table">
                     <thead>
                     <tr>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Amount</th>
-                        <th>Paid</th>
-                        <th>Actions</th>
+                        <th>Data</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr ng-repeat="iou in demoApp.ious">
-                        <td class="vert-align">{{iou.lender.slice(-10)}}</td>
-                        <td class="vert-align">{{iou.borrower.slice(-10)}}</td>
-                        <td class="vert-align">{{iou.amount}}</td>
-                        <td class="vert-align">{{iou.paid}}</td>
+                    <tr ng-repeat="iou in demoApp.fxf">
+                        <td class="vert-align">{{iou}}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <button ng-click="demoApp.openTransferModal(iou.linearId.id)" type="button" class="btn btn-primary">Transfer
@@ -252,6 +245,43 @@
         <div class="col-md-1"></div>
     </div>
 </div>
-
+<div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-10">
+        <div ng-show="!demoApp.ff.length" class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">There are no recorded Transaction</h3>
+            </div>
+        </div>
+        <div ng-show="demoApp.ff.length" class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Float Float iRS:</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Data</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="iou in demoApp.ff">
+                        <td class="vert-align">{{iou}}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button ng-click="demoApp.openTransferModal(iou.linearId.id)" type="button" class="btn btn-primary">Transfer
+                                </button>
+                                <button ng-click="demoApp.openSettleModal(iou.linearId.id)" type="button" class="btn btn-primary">Settle
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+</div>
 </body>
 </html>

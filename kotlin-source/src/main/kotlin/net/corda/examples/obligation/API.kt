@@ -62,7 +62,7 @@ class API(val rpcOps: CordaRPCOps) {
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
         val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
-        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),listOf(acc1), listOf(acc1))
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),"event.primitive.newTrade.get(0).contractReference.identifierValue.identifier.toString()",listOf(acc1), listOf(acc1))
         //val quantity = Notional("70000000.0", "EUR")
         val paymentFrequency = PaymentFrequency("Y", 1)
         val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
@@ -73,7 +73,7 @@ class API(val rpcOps: CordaRPCOps) {
         var floatIndex =0;
         var fixedIndex =1;
         var type = "float"
-        if(interestRatePayout.get(1).resetDates.calculationPeriodDatesReference.contains("float")) {
+        if(interestRatePayout.get(1).interestRate.fixedRate==null) {
             floatIndex =1;
             fixedIndex =0;
             type="fixed"
@@ -116,6 +116,7 @@ class API(val rpcOps: CordaRPCOps) {
             
             var fixedFloatIRS:FixedFloatIRS
         var fixedLegBool = true
+        System.out.println("legs created")
         if(type.equals("fixed",true))
         {
             fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity,partyIdentity)
@@ -136,6 +137,7 @@ class API(val rpcOps: CordaRPCOps) {
             val result = flowHandle.use { it.returnValue.getOrThrow() }
             CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
         } catch (e: Exception) {
+        e.printStackTrace()
             BAD_REQUEST to e.message
         }
 
@@ -155,7 +157,7 @@ class API(val rpcOps: CordaRPCOps) {
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
         val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
-        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),listOf(acc1), listOf(acc1))
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),"event.primitive.newTrade.get(0).contractReference.identifierValue.identifier.toString()",listOf(acc1), listOf(acc1))
         //val quantity = Notional("70000000.0", "EUR")
         val paymentFrequency = PaymentFrequency("Y", 1)
         val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
