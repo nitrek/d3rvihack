@@ -23,6 +23,9 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status.BAD_REQUEST
 import javax.ws.rs.core.Response.Status.CREATED
+import java.util.UUID.nameUUIDFromBytes
+
+
 
 @Path("obligation")
 class API(val rpcOps: CordaRPCOps) {
@@ -51,6 +54,10 @@ class API(val rpcOps: CordaRPCOps) {
     @Produces(MediaType.APPLICATION_JSON)
     fun getirsdealsFF() = rpcOps.vaultQuery(FloatFloatIRS::class.java).states
 
+    @GET
+    @Path("get-cds")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getcdsdeals() = rpcOps.vaultQuery(CreditDefaultSwap::class.java).states
 
 
     //my api
@@ -257,8 +264,9 @@ class API(val rpcOps: CordaRPCOps) {
         val detailsModel = TradeDetails(contract.contractualProduct.productIdentification.productQualifier,contract.tradeDate.adjustableDate.unadjustedDate.toString())
 
 
-
-        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller,UniqueIdentifier(eventIdentifier))
+        val aString = "JUST_A_TEST_STRING"
+        val result = UUID.nameUUIDFromBytes(aString.toByteArray())
+        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller,UniqueIdentifier(eventIdentifier,result))
 
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
