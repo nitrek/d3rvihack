@@ -8,7 +8,9 @@ data class GeneralTerms (
     val businessCenter: List<String>,
     val businessDayConvention: String,
     val indexName: String,
-    val indexSeries: String
+    val indexSeries: String,
+    val buyerCommonName: String,
+    val sellerCommonName: String
 )
 {
 

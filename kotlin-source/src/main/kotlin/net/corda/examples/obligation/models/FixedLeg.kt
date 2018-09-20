@@ -11,6 +11,7 @@ data class FixedLeg(val payerPartyReference : String,
                     val terminationDate: CalculationPeriodDateReference,
                     val dayCountBasis:String,
                     val paymentCalendar: CalculationPeriodDateReference,
-                    val fixedRate:String)
+                    val fixedRate:String,
+                    val partyCommonName: String)
 {
 }
