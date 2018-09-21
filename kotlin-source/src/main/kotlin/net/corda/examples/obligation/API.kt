@@ -123,12 +123,14 @@ class API(val rpcOps: CordaRPCOps) {
             var fixedFloatIRS:FixedFloatIRS
         var fixedLegBool = true
         System.out.println("legs created")
+        val aString = "JUST_A_TEST_STRING"
+        val result = UUID.nameUUIDFromBytes(aString.toByteArray())
         if(type.equals("fixed",true))
         {
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity,partyIdentity)
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg, myIdentity,partyIdentity,UniqueIdentifier(contract.contractIdentifier.get(0).identifierValue.identifier,result))
         }
     else{
-            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg,partyIdentity, myIdentity)
+            fixedFloatIRS = net.corda.examples.obligation.FixedFloatIRS(basicInfo, fixedLeg, floatingLeg,partyIdentity, myIdentity,UniqueIdentifier(contract.contractIdentifier.get(0).identifierValue.identifier,result))
             fixedLegBool = false
         }
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
@@ -206,9 +208,10 @@ class API(val rpcOps: CordaRPCOps) {
                         ""), interestRatePayout.get(floatIndex1).resetDates.toString(),
                 FloatingRateIndex(interestRatePayout.get(floatIndex1).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
                         interestRatePayout.get(floatIndex1).interestRate.floatingRate.initialRate.toString()),event.party.get(1).legalEntity.name)
-
-
-            val floatFloatIRS = net.corda.examples.obligation.FloatFloatIRS(basicInfo, floatingLeg1, floatingLeg2, myIdentity,partyIdentity)
+        
+            val aString = "JUST_A_TEST_STRING"
+        val result = UUID.nameUUIDFromBytes(aString.toByteArray())
+            val floatFloatIRS = net.corda.examples.obligation.FloatFloatIRS(basicInfo, floatingLeg1, floatingLeg2, myIdentity,partyIdentity,UniqueIdentifier(contract.contractIdentifier.get(0).identifierValue.identifier,result))
 
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
