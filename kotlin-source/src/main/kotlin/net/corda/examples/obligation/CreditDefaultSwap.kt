@@ -14,7 +14,7 @@ data class CreditDefaultSwap(val contractIdentifier: ContractIdentifier,
                              val protectionTerms: ProtectionTerms,
                              val buyer:Party,
                              val seller:Party,
-                             var cdsTermination: CDSTermination,
+                             val cdsTermination: CDSTermination,
                              override val linearId: UniqueIdentifier = UniqueIdentifier()) : LinearState {
 
     override val participants: List<AbstractParty> get() = listOf(buyer,seller)
@@ -22,7 +22,12 @@ data class CreditDefaultSwap(val contractIdentifier: ContractIdentifier,
 //    fun pay(amountToPay: Amount<Currency>) = copy(paid = paid + amountToPay)
 //    fun withNewLender(newLender: AbstractParty) = copy(lender = newLender)
 //    fun withoutLender() = copy(lender = NullKeys.NULL_PARTY)
-
+    fun setCDSTermination(status: String,
+                          initiatedBy: Party,
+                          counterParty: Party,
+                          terminationFee: String,
+                          effectiveDate: String)= copy (cdsTermination = CDSTermination(status,initiatedBy,counterParty,terminationFee,effectiveDate))
+    fun setNotional(notional : String, currency : String) = copy(protectionTerms= ProtectionTerms(notional,currency))
 //    override fun toString(): String {
 //        val lenderString = (lender as? Party)?.name?.organisation ?: lender.owningKey.toBase58String()
 //        val borrowerString = (borrower as? Party)?.name?.organisation ?: borrower.owningKey.toBase58String()

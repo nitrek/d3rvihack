@@ -22,11 +22,12 @@ import net.corda.examples.obligation.IRSContract
 import net.corda.examples.obligation.IRSContract.Companion.OBLIGATION_CONTRACT_ID
 import net.corda.examples.obligation.models.CDSTermination
 import java.util.*
+import javax.servlet.http.Part
 
-object FullTerminationInitiation {
+object FullTerminationAccceptance{
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(private val contractId: String, val initiatedBy: Party, val counterParty: Party, val terminationFee: String, val effectiveDate: String) : FlowLogic<SignedTransaction>() {
+    class Initiator(private val contractId: String, val acceptedBy: Party) : FlowLogic<SignedTransaction>() {
 
         companion object {
             object INITIALISING : Step("Performing initial steps.")
@@ -53,9 +54,12 @@ object FullTerminationInitiation {
             val result = UUID.nameUUIDFromBytes(aString.toByteArray())
             val cdsToTerminate = getObligationByLinearId(UniqueIdentifier(contractId,result))
             val cdsTerminateOutput = cdsToTerminate;
-            cdsTerminateOutput.state.data.setCDSTermination("TERMIN",initiatedBy,counterParty,terminationFee,effectiveDate)
 
 
+            if(cdsToTerminate.state.data.cdsTermination.counterParty != acceptedBy){
+                throw FlowException("Acceptance of Termination has to be done by the counterParty.")
+            }
+            cdsTerminateOutput.state.data.setNotional("0",cdsTerminateOutput.state.data.protectionTerms.currency)
             // Step 2. Building.
             progressTracker.currentStep = BUILDING
             val utx = TransactionBuilder(firstNotary)
@@ -66,15 +70,15 @@ object FullTerminationInitiation {
 
             // Step 3. Sign the transaction.
             progressTracker.currentStep = SIGNING
-            val ptx = serviceHub.signInitialTransaction(utx, initiatedBy.owningKey)
+            val ptx = serviceHub.signInitialTransaction(utx, acceptedBy.owningKey)
 
             // Step 4. Get the counter-party signature.
             progressTracker.currentStep = COLLECTING
-            val lenderFlow = initiateFlow(counterParty)
+            val lenderFlow = initiateFlow(cdsTerminateOutput.state.data.cdsTermination.initiatedBy!!)
             val stx = subFlow(CollectSignaturesFlow(
                     ptx,
                     setOf(lenderFlow),
-                    listOf(initiatedBy.owningKey),
+                    listOf(acceptedBy.owningKey),
                     COLLECTING.childProgressTracker())
             )
 
@@ -103,7 +107,11 @@ object FullTerminationInitiation {
         }
     }
 }
-
+internal class SignTxFlowNoChecking(otherFlow: FlowSession) : SignTransactionFlow(otherFlow) {
+    override fun checkTransaction(tx: SignedTransaction) {
+        // TODO: Add checking here.
+    }
+}
 
 
 

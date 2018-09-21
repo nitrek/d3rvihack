@@ -4,6 +4,6 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 
 @CordaSerializable
-data class CDSTermination (var status: String?= null, var initiatedBy: Party?=null, var counterParty: Party?=null, var terminationFee: String?=null, var effectiveDate: String?=null)
+data class CDSTermination (val status: String?= null, val initiatedBy: Party?=null, val counterParty: Party?=null, val terminationFee: String?=null, val effectiveDate: String?=null)
 {
 }

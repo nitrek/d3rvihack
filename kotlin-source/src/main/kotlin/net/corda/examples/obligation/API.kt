@@ -6,9 +6,7 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
-import net.corda.examples.obligation.flows.IssueCdsDeal
-import net.corda.examples.obligation.flows.IssueIrsFixedFloatDeal
-import net.corda.examples.obligation.flows.IssueIrsFloatFloatDeal
+import net.corda.examples.obligation.flows.*
 import net.corda.examples.obligation.models.*
 import net.corda.finance.contracts.asset.Cash
 import net.corda.finance.contracts.getCashBalances
@@ -265,7 +263,7 @@ class API(val rpcOps: CordaRPCOps) {
 
         val aString = "JUST_A_TEST_STRING"
         val result = UUID.nameUUIDFromBytes(aString.toByteArray())
-        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller,CDSTermination("NEWTRADE"),UniqueIdentifier(eventIdentifier,result))
+        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller, CDSTermination("NEWTRADE"),UniqueIdentifier(eventIdentifier,result))
 
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
@@ -273,6 +271,52 @@ class API(val rpcOps: CordaRPCOps) {
                     IssueCdsDeal.Initiator::class.java,
                     creditDefaultSwap,
                     creditDefaultSwap.seller
+            )
+
+            val result = flowHandle.use { it.returnValue.getOrThrow() }
+            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
+        } catch (e: Exception) {
+            BAD_REQUEST to e.message
+        }
+
+        // 4. Return the result.
+        return Response.status(status).entity(message).build()
+    }
+
+    @POST
+    @Path("initiateTermination")
+    fun initiateTermination(@QueryParam(value = "contractId") contractId: String,
+                            @QueryParam(value = "counterParty") cParty: String,
+                            @QueryParam(value = "effDate") effectiveDate: String,
+                            @QueryParam(value = "termFee") terminationFee: String): Response {
+        val counterParty = rpcOps.partiesFromName(cParty, exactMatch = false).singleOrNull()
+                ?: throw IllegalStateException("Couldn't lookup node identity for "+cParty)
+        val (status, message) = try {
+            val flowHandle = rpcOps.startFlowDynamic(
+                    FullTerminationInitiation.Initiator::class.java,
+                    contractId,
+                    myIdentity,
+                    counterParty,
+                    terminationFee,
+                    effectiveDate)
+            val result = flowHandle.use { it.returnValue.getOrThrow() }
+            CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
+        } catch (e: Exception) {
+            BAD_REQUEST to e.message
+        }
+
+        // 4. Return the result.
+        return Response.status(status).entity(message).build()
+    }
+
+    @POST
+    @Path("acceptTermination")
+    fun acceptTermination(@QueryParam(value = "contractId") contractId: String): Response {
+        val (status, message) = try {
+            val flowHandle = rpcOps.startFlowDynamic(
+                    FullTerminationAccceptance.Initiator::class.java,
+                    contractId,
+                    myIdentity
             )
 
             val result = flowHandle.use { it.returnValue.getOrThrow() }

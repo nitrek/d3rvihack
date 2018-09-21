@@ -8,7 +8,7 @@ class CDSContract : Contract {
 
     companion object {
         @JvmStatic
-        val OBLIGATION_CONTRACT_ID = "net.corda.examples.obligation.CDSContract"
+        val CDS_CONTRACT_ID = "net.corda.examples.obligation.CDSContract"
     }
 
     interface Commands : CommandData {
@@ -46,7 +46,7 @@ class CDSContract : Contract {
         val input = tx.inputsOfType<CreditDefaultSwap>().single()
         val output = tx.outputsOfType<CreditDefaultSwap>().single()
         "Fresh Termination, no previous initation" using (input.cdsTermination.status.equals("TERMIN"))
-        "Output Status should be Termination Initiated" using(output.cdsTermination.status.equals("TERMINATED"))
+        //"Output Status should be Termination Initiated" using(output.cdsTermination.status.equals("TERMINATED"))
         "Notional Value set to 0" using (output.protectionTerms.notionalAmount.equals("0"))
 
     }
