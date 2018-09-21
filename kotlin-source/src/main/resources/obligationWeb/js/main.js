@@ -75,12 +75,12 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
     /** Refreshes the front-end. */
     demoApp.refresh = () => {
         // Update the list of IOUs.
-        $http.get(apiBaseURL + "obligations").then((response) => demoApp.ious =
+        $http.get(apiBaseURL + "get-irs-float-float").then((response) => demoApp.ff =
             Object.keys(response.data).map((key) => response.data[key].state.data));
 
         // Update the cash balances.
-        $http.get(apiBaseURL + "cash-balances").then((response) => demoApp.cashBalances =
-            response.data);
+        $http.get(apiBaseURL + "get-irs-fixed-float").then((response) => demoApp.fxf =
+            Object.keys(response.data).map((key) => response.data[key].state.data));
     }
 
     demoApp.refresh();
