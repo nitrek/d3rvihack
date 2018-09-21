@@ -66,21 +66,16 @@ class API(val rpcOps: CordaRPCOps) {
     fun createDeal(payload:String): Response {
         // 1. Get party objects for the counterparty.
         val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
-        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.entityId, exactMatch = false).singleOrNull()
                ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
        
         val contract = event.primitive.newTrade.get(0).contract
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
         val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
-        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),"event.primitive.newTrade.get(0).contractReference.identifierValue.identifier.toString()",listOf(acc1), listOf(acc1))
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),contract.contractIdentifier.get(0).identifierValue.identifier,listOf(acc1), listOf(acc1))
         //val quantity = Notional("70000000.0", "EUR")
-        val paymentFrequency = PaymentFrequency("Y", 1)
-        val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
-        val terminationDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2019-09-26")
-        val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
-        val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
-        val floatingRateIndex = FloatingRateIndex( "0.003000", "0.026587")
+
         var floatIndex =0;
         var fixedIndex =1;
         var type = "float"
@@ -105,7 +100,7 @@ class API(val rpcOps: CordaRPCOps) {
                         interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
                         ""), interestRatePayout.get(floatIndex).resetDates.toString(),
                 FloatingRateIndex(interestRatePayout.get(floatIndex).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
-                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()))
+                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()),event.party.get(floatIndex).legalEntity.name)
 
 
     val fixedLeg = FixedLeg(interestRatePayout.get(fixedIndex).payerReceiver.payerPartyReference, interestRatePayout.get(fixedIndex).payerReceiver.receiverPartyReference,
@@ -122,8 +117,8 @@ class API(val rpcOps: CordaRPCOps) {
             CalculationPeriodDateReference(listOf(interestRatePayout.get(fixedIndex).paymentDates.paymentDatesAdjustments.businessCenters.toString()),
                     interestRatePayout.get(fixedIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
                     ""),
-            interestRatePayout.get(fixedIndex).interestRate.fixedRate.initialValue.toString()
-            )
+            interestRatePayout.get(fixedIndex).interestRate.fixedRate.initialValue.toString(),
+            event.party.get(fixedIndex).legalEntity.name)
             
             var fixedFloatIRS:FixedFloatIRS
         var fixedLegBool = true
@@ -161,21 +156,17 @@ class API(val rpcOps: CordaRPCOps) {
     fun createDealFloat(payload:String): Response {
         // 1. Get party objects for the counterparty.
          val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
-        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.entityId, exactMatch = false).singleOrNull()
                 ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
         //val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
         val contract = event.primitive.newTrade.get(0).contract
         val interestRatePayout = contract.contractualProduct.economicTerms.payout.interestRatePayout
         val acc1 = AccountDetails(contract.account.get(0).accountNumber, contract.account.get(0).servicingParty)
         val acc2 = AccountDetails(contract.account.get(1).accountNumber,contract.account.get(1).servicingParty)
-        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),"event.primitive.newTrade.get(0).contractReference.identifierValue.identifier.toString()",listOf(acc1), listOf(acc1))
+
+        val basicInfo = IRSBasicInfo(contract.tradeDate.adjustableDate.unadjustedDate.toString(),contract.contractIdentifier.get(0).identifierValue.identifier,listOf(acc1), listOf(acc1))
         //val quantity = Notional("70000000.0", "EUR")
-        val paymentFrequency = PaymentFrequency("Y", 1)
-        val effictiveDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2018-09-26")
-        val terminationDate = CalculationPeriodDateReference(listOf("EUTA"), "Following", "2019-09-26")
-        val paymentCalander = CalculationPeriodDateReference(listOf("EULA"), "Following", "2018-09-26")
-        val paymentFrequencyRateIndex = PaymentFrequency("M", 6)
-        val floatingRateIndex = FloatingRateIndex( "0.003000", "0.026587")
+
 
         var floatIndex =0;
         var floatIndex1 =1;
@@ -195,7 +186,7 @@ class API(val rpcOps: CordaRPCOps) {
                         interestRatePayout.get(floatIndex).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
                         ""), interestRatePayout.get(floatIndex).resetDates.toString(),
                 FloatingRateIndex(interestRatePayout.get(floatIndex).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
-                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()))
+                        interestRatePayout.get(floatIndex).interestRate.floatingRate.initialRate.toString()),event.party.get(0).legalEntity.name)
 
 
         val floatingLeg2 = FloatingLeg(interestRatePayout.get(floatIndex1).payerReceiver.payerPartyReference, interestRatePayout.get(floatIndex1).payerReceiver.receiverPartyReference,
@@ -214,7 +205,7 @@ class API(val rpcOps: CordaRPCOps) {
                         interestRatePayout.get(floatIndex1).paymentDates.paymentDatesAdjustments.businessDayConvention.toString(),
                         ""), interestRatePayout.get(floatIndex1).resetDates.toString(),
                 FloatingRateIndex(interestRatePayout.get(floatIndex1).interestRate.floatingRate.spreadSchedule.get(0).initialValue.toString(),
-                        interestRatePayout.get(floatIndex1).interestRate.floatingRate.initialRate.toString()))
+                        interestRatePayout.get(floatIndex1).interestRate.floatingRate.initialRate.toString()),event.party.get(1).legalEntity.name)
 
 
             val floatFloatIRS = net.corda.examples.obligation.FloatFloatIRS(basicInfo, floatingLeg1, floatingLeg2, myIdentity,partyIdentity)
@@ -242,7 +233,7 @@ class API(val rpcOps: CordaRPCOps) {
     fun createCreditDefaultSwap(payload:String): Response {
         // 1. Get party objects for the counterparty.
         val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
-        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.name, exactMatch = false).singleOrNull()
+        val partyIdentity = rpcOps.partiesFromName(event.party.get(1).legalEntity.entityId, exactMatch = false).singleOrNull()
                 ?: throw IllegalStateException("Couldn't lookup node identity for "+event.party.get(1).legalEntity.name)
         //val event = RosettaObjectMapper.getDefaultRosettaObjectMapper().readValue(payload, Event::class.java)
         val contract = event.primitive.newTrade.get(0).contract
@@ -254,9 +245,12 @@ class API(val rpcOps: CordaRPCOps) {
 
         val payout = contract.contractualProduct.economicTerms.payout.interestRatePayout.get(0)
         val buyer = if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
-        val seller =  if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
+        val seller =  if (terms.buyerSeller.sellerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
 
-        val generalTerms = GeneralTerms(terms.dateAdjustments.businessCenters.businessCenter.map{it.toString()},terms.dateAdjustments.businessDayConvention.toString(),terms.indexReferenceInformation.indexName,terms.indexReferenceInformation.indexSeries.toString())
+        val buyerName =  if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) event.party.get(0).legalEntity.name else event.party.get(1).legalEntity.name
+        val sellerName =  if (terms.buyerSeller.sellerPartyReference.equals(event.party.get(0).partyId.get(0))) event.party.get(0).legalEntity.name else event.party.get(1).legalEntity.name
+
+        val generalTerms = GeneralTerms(terms.dateAdjustments.businessCenters.businessCenter.map{it.toString()},terms.dateAdjustments.businessDayConvention.toString(),terms.indexReferenceInformation.indexName,terms.indexReferenceInformation.indexSeries.toString(),buyerName,sellerName)
         val interestRatePayout = InterestRatePayout(payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.interestRate.fixedRate.initialValue.toString(),payout.dayCountFraction.toString())
         val feeValue = contract.contractualProduct.economicTerms.payout.cashflow.get(0).cashflowAmount
         val premiumFee = PremiumFee(feeValue.amount.toString(),feeValue.currency.toString())
