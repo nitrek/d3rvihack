@@ -302,6 +302,7 @@ class API(val rpcOps: CordaRPCOps) {
             val result = flowHandle.use { it.returnValue.getOrThrow() }
             CREATED to "Transaction id ${result.id} committed to ledger.\n${result.tx.outputs.single().data}"
         } catch (e: Exception) {
+            e.printStackTrace()
             BAD_REQUEST to e.message
         }
 

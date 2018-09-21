@@ -31,7 +31,7 @@ class IRSContract : Contract {
 
     // This only allows one obligation issuance per transaction.
     private fun verifyFixedFloatDeal(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
-        "No inputs should be consumed when issuing an obligation." using (tx.inputStates.isEmpty())
+        //"No inputs should be consumed when issuing an obligation." using (tx.inputStates.isEmpty())
         "Only one obligation state should be created when issuing an obligation." using (tx.outputStates.size == 1)
     }
     private fun verifyFloatFloatDeal(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {

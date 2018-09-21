@@ -17,12 +17,7 @@ import net.corda.core.utilities.seconds
 import net.corda.examples.obligation.CDSContract
 import net.corda.examples.obligation.CDSContract.Companion.CDS_CONTRACT_ID
 import net.corda.examples.obligation.CreditDefaultSwap
-import net.corda.examples.obligation.FloatFloatIRS
-import net.corda.examples.obligation.IRSContract
-import net.corda.examples.obligation.IRSContract.Companion.OBLIGATION_CONTRACT_ID
-import net.corda.examples.obligation.models.CDSTermination
 import java.util.*
-import javax.servlet.http.Part
 
 object FullTerminationAccceptance{
     @InitiatingFlow
