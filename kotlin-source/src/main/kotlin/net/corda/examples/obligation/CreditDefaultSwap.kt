@@ -14,6 +14,7 @@ data class CreditDefaultSwap(val contractIdentifier: ContractIdentifier,
                              val protectionTerms: ProtectionTerms,
                              val buyer:Party,
                              val seller:Party,
+                             var cdsTermination: CDSTermination,
                              override val linearId: UniqueIdentifier = UniqueIdentifier()) : LinearState {
 
     override val participants: List<AbstractParty> get() = listOf(buyer,seller)

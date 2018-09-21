@@ -245,9 +245,9 @@ class API(val rpcOps: CordaRPCOps) {
         val seller =  if (terms.buyerSeller.sellerPartyReference.equals(event.party.get(0).partyId.get(0))) myIdentity else partyIdentity
 
         val buyerName =  if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) event.party.get(0).legalEntity.name else event.party.get(1).legalEntity.name
-        val sellerName =  if (terms.buyerSeller.buyerPartyReference.equals(event.party.get(0).partyId.get(0))) event.party.get(0).legalEntity.name else event.party.get(1).legalEntity.name
+        val sellerName =  if (terms.buyerSeller.sellerPartyReference.equals(event.party.get(0).partyId.get(0))) event.party.get(0).legalEntity.name else event.party.get(1).legalEntity.name
 
-        val generalTerms = GeneralTerms(terms.dateAdjustments.businessCenters.businessCenter.map{it.toString()},terms.dateAdjustments.businessDayConvention.toString(),terms.indexReferenceInformation.indexName,terms.indexReferenceInformation.indexSeries.toString(),)
+        val generalTerms = GeneralTerms(terms.dateAdjustments.businessCenters.businessCenter.map{it.toString()},terms.dateAdjustments.businessDayConvention.toString(),terms.indexReferenceInformation.indexName,terms.indexReferenceInformation.indexSeries.toString(),buyerName,sellerName)
         val interestRatePayout = InterestRatePayout(payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.calculationPeriodDates.effectiveDate.adjustableDate.unadjustedDate.toString(),payout.interestRate.fixedRate.initialValue.toString(),payout.dayCountFraction.toString())
         val feeValue = contract.contractualProduct.economicTerms.payout.cashflow.get(0).cashflowAmount
         val premiumFee = PremiumFee(feeValue.amount.toString(),feeValue.currency.toString())
@@ -259,7 +259,7 @@ class API(val rpcOps: CordaRPCOps) {
 
         val aString = "JUST_A_TEST_STRING"
         val result = UUID.nameUUIDFromBytes(aString.toByteArray())
-        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller,UniqueIdentifier(eventIdentifier,result))
+        val creditDefaultSwap = net.corda.examples.obligation.CreditDefaultSwap(contractIdentifier,generalTerms,detailsModel,interestRatePayout,premiumFee,protectionTerms,buyer,seller,CDSTermination("NEWTRADE"),UniqueIdentifier(eventIdentifier,result))
 
         // 3. Start the IssueObligation flow. We block and wait for the flow to return.
         val (status, message) = try {
